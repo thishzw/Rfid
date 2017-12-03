@@ -13,8 +13,12 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    rfidreader.cpp \
+    rfidreaderthread.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    rfidreader.h \
+    rfidreaderthread.h
 
 FORMS    += mainwindow.ui
