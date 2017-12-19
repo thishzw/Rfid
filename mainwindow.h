@@ -1,9 +1,20 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
+
 #include <QMainWindow>
+#include"reader.h"
+#include<QByteArray>
+#include<QSqlDatabase>
+#include<QSql>
+#include<QSqlDriver>
+#include"login.h"
+#include<QMessageBox>
+#include<QException>
+#include<QSqlRecord>
 namespace Ui {
 class MainWindow;
 }
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -11,13 +22,31 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
+void setDataBase(QSqlDatabase *database);
+void setCom(int com);
+private slots:
+
+void on_action_triggered();
+
+void on_pushButton_clicked();
+
+void on_pushButton_2_clicked();
+
+
+void on_actionAdd_triggered();
 
 private:
     Ui::MainWindow *ui;
-
-private slots:
-    void readCom();
-    void on_pushButton_clicked();
+    Reader *comReader;
+    QSqlDatabase *db;
+    bool add;
+    bool isCustomer;
+    bool identify;
+    char TID[24]  ;
+    int cardID;
+    void mode();
+    void WriteCustomer();
+    void WriteGoods();
 };
 
 #endif // MAINWINDOW_H
