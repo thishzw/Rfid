@@ -17,13 +17,16 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     reader.cpp \
     login.cpp \
-    client.cpp
+    client.cpp \
+    pay.cpp
 
 HEADERS  += mainwindow.h \
     reader.h \
     login.h \
-    client.h
+    client.h \
+    pay.h
 
 FORMS    += mainwindow.ui \
     login.ui \
-    client.ui
+    client.ui \
+    pay.ui

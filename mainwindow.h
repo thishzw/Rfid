@@ -23,7 +23,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 void setDataBase(QSqlDatabase *database);
-void setCom(int com);
+void setCom(Reader *com);
 private slots:
 
 void on_action_triggered();
@@ -35,6 +35,8 @@ void on_pushButton_2_clicked();
 
 void on_actionAdd_triggered();
 
+void on_pushButton_3_clicked();
+
 private:
     Ui::MainWindow *ui;
     Reader *comReader;
@@ -42,7 +44,7 @@ private:
     bool add;
     bool isCustomer;
     bool identify;
-    char TID[24]  ;
+    char EPC[24]  ;
     int cardID;
     void mode();
     void WriteCustomer();

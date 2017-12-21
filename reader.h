@@ -31,7 +31,7 @@ public:
     bool   LockPassWordTag(char passwd1,char passwd2,char passwd3,char passwd4,char lockType,char ReaderAddr);
     bool   UnlockPassWordTag(char passwd1,char passwd2,char passwd3,char passwd4,char lockType,char ReaderAddr);
     bool   KillTag(char passwd1, char passwd2, char passwd3, char passwd4,char ReaderAddr);
-
+    bool  SetReaderParameter( int addr,const char* params,char ReaderAddr);
 private:
     void COMMOpen(int portNo);
     void COMMClose();

@@ -18,14 +18,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_3->hide();
     ui->lineEdit_4->hide();
     ui->lineEdit_5->hide();
+    ui->pushButton_3->hide();
     add=false;
     isCustomer=false;
     identify=false;
 }
-void MainWindow::setCom(int com)
+void MainWindow::setCom(Reader *com)
 {
-    comReader=new Reader();
-    comReader->openCOMM(com);
+    comReader=com;
+    comReader->openCOMM(4);
 }
 void MainWindow::setDataBase(QSqlDatabase *database)
 {
@@ -50,6 +51,11 @@ void MainWindow::mode()
     ui->label_3->show();
     ui->lineEdit_4->show();
     ui->pushButton_2->show();
+    ui->lineEdit->clear();
+    ui->lineEdit_2->clear();
+    ui->lineEdit_3->clear();
+    ui->lineEdit_4->clear();
+    ui->lineEdit_5->clear();
     if(isCustomer)
     {
         ui->label_4->show();
@@ -58,6 +64,8 @@ void MainWindow::mode()
         ui->lineEdit_5->show();
         ui->label_2->setText("姓名：");
         ui->label_3->setText("性别：");
+        ui->label_2->repaint();
+        ui->label_3->repaint();
 
     }
     else
@@ -67,7 +75,9 @@ void MainWindow::mode()
         ui->lineEdit_3->hide();
         ui->lineEdit_5->hide();
         ui->label_2->setText("商品名：");
+        ui->label_2->repaint();
         ui->label_3->setText("售价：");
+        ui->label_3->repaint();
 
     }
 }
@@ -84,33 +94,36 @@ void MainWindow::WriteGoods()
 
 void MainWindow::on_pushButton_clicked()
 {
-    //识别卡获得TID
-    char EPC[12];
+    //识别卡获得EPC
     if(!comReader->IdentifySingleTag(EPC,nullptr,0))
     {
         QMessageBox::warning(this,"ERROR","IDENTFY EPC ERROR",QMessageBox::Ok);
         return;
     }
-    if(!comReader->ReadTIDByEpcID(EPC,TID,0))
-    {
-        QMessageBox::warning(this,"ERROR","READ TID ERROR",QMessageBox::Ok);
-        return;
-    }
     QByteArray array;
-    array.setRawData(TID,8);
+    array.setRawData(EPC,12);
     array=array.toHex();
-    QString tid(array);
-    QString temp="SELECT * FROM card WHERE TID=\'";
-    temp+=tid;
+    QString epc(array);
+    qDebug()<<epc;
+    QString temp="SELECT * FROM card WHERE EPC=\'";
+    temp+=epc;
     temp+="\'";
     QSqlQuery query(*db);
+    query.clear();
     if(!query.exec(temp))
         QMessageBox::warning(this,"ERROR","SQL SELECT ERROR",QMessageBox::Ok);
        query.next();
     if(query.size())
     {
        //已被标识的卡
-        qDebug()<<query.size();
+        if(add)
+        {
+            QMessageBox::warning(this,"ERROR","THIS LABEL IS NOT A NEW ONE");
+            return;
+        }
+        ui->pushButton_3->show();
+        ui->label_7->setText("已检测到标签");
+        ui->label_7->repaint();
         QString type=query.value("type").toString();
         if(type=="customer")
             isCustomer=true;
@@ -119,6 +132,7 @@ void MainWindow::on_pushButton_clicked()
         cardID=query.value("id").toInt();
         mode();
         ui->lineEdit->setText(QString::number(cardID,10));
+        ui->lineEdit->repaint();
         temp="SELECT * FROM ";
         if(isCustomer)
             temp+="customer WHERE id=";
@@ -135,11 +149,17 @@ void MainWindow::on_pushButton_clicked()
             ui->lineEdit_4->setText(query.value("male").toString());
             ui->lineEdit_3->setText(QString::number(query.value("age").toInt()));
             ui->lineEdit_5->setText(QString::number(query.value("money").toDouble(),10,2));
+            ui->lineEdit_2->repaint();
+            ui->lineEdit_3->repaint();
+            ui->lineEdit_4->repaint();
+            ui->lineEdit_5->repaint();
         }
         else
         {
              ui->lineEdit_2->setText(query.value("name").toString());
-             ui->lineEdit_4->setText(QString::number(query.value("money").toDouble(),10,2));
+             ui->lineEdit_2->repaint();
+             ui->lineEdit_4->setText(QString::number(query.value("price").toDouble(),10,2));
+             ui->lineEdit_4->repaint();
         }
         identify=true;
         ui->pushButton_2->show();
@@ -150,6 +170,8 @@ void MainWindow::on_pushButton_clicked()
         if(!add)
         QMessageBox::about(this,"SUCCESS","THIS IS A NEW LABEL,PLEASE CHOOSE ADD A GOODS OR CUSTOMER");
     }
+    comReader->CloseCOMM();
+    comReader->openCOMM(4);
 }
 
 void MainWindow::on_pushButton_2_clicked()
@@ -160,14 +182,14 @@ void MainWindow::on_pushButton_2_clicked()
     {
         QSqlQuery query(*db);
         QByteArray array;
-        array.setRawData(TID,8);
+        array.setRawData(EPC,12);
         array=array.toHex();
-        QString tid(array);
+        QString epc(array);
         if(add)
         {
            //新增的卡片
-            QString temp="INSERT INTO card (TID,type) values(\'";
-            temp+=tid;
+            QString temp="INSERT INTO card (EPC,type) values(\'";
+            temp+=epc;
             temp+="\',\'";
             if(isCustomer)
                 temp+="customer\')";
@@ -175,8 +197,8 @@ void MainWindow::on_pushButton_2_clicked()
                 temp+="goods\')";
             if(!query.exec(temp))
                 QMessageBox::warning(this,"ERROR","SQL INSERT  ERROR",QMessageBox::Ok);
-            temp="SELECT id FROM card WHERE TID=\'";
-            temp+=tid;
+            temp="SELECT id FROM card WHERE EPC=\'";
+            temp+=epc;
             temp+="\'";
             query.clear();
             if(!query.exec(temp))
@@ -184,10 +206,12 @@ void MainWindow::on_pushButton_2_clicked()
             query.next();
             cardID=query.value("id").toInt();
             ui->lineEdit->setText(QString::number(cardID,10));
+            ui->lineEdit->repaint();
             query.clear();
             if(isCustomer)
             {
                 ui->lineEdit_5->setText("0.00");
+                ui->label_5->repaint();
                 QString name =ui->lineEdit_2->text();
                 QString male=ui->lineEdit_4->text();
                 int age=ui->lineEdit_3->text().toInt(nullptr,10);
@@ -222,6 +246,7 @@ void MainWindow::on_pushButton_2_clicked()
                 if(!query.exec(temp))
                 {
                     QMessageBox::warning(this,"ERROR","SQL  SAVE INSERT  ERROR",QMessageBox::Ok);
+                   qDebug()<<query.lastError().text();
                     return;
                 }
                 QMessageBox::about(this,"SUCCESS","ADD A NEW LABEL");
@@ -231,8 +256,8 @@ void MainWindow::on_pushButton_2_clicked()
         {
            //旧卡片
             QString temp;
-            temp="SELECT id FROM card WHERE TID=\'";
-            temp+=tid;
+            temp="SELECT id FROM card WHERE EPC=\'";
+            temp+=epc;
             temp+="\'";
             query.clear();
             if(!query.exec(temp))
@@ -265,6 +290,9 @@ void MainWindow::on_pushButton_2_clicked()
     }
     add=false;
     identify=false;
+    ui->pushButton_3->hide();
+    ui->label_7->setText("未检测到标签");
+    ui->label_7->repaint();
 }
 
 void MainWindow::on_action_triggered()
@@ -279,4 +307,33 @@ void MainWindow::on_actionAdd_triggered()
     add=true;
     isCustomer=false;
     mode();
+}
+
+void MainWindow::on_pushButton_3_clicked()
+{
+    QSqlQuery query(*db);
+    QString temp="DELETE FROM card WHERE id=" ;
+    temp+=QString::number(cardID,10);
+    if(!query.exec(temp))
+    {
+        QMessageBox::warning(this,"ERROR","SQL  DELETE CARD  ERROR",QMessageBox::Ok);
+        return;
+    }
+    query.clear();
+    temp="DELETE FROM ";
+    if(isCustomer)
+        temp+="customer WHERE id="  ;
+    else
+        temp+="goods WHERE id=";
+    temp+=QString::number(cardID,10);
+    if(!query.exec(temp))
+    {
+        QMessageBox::warning(this,"ERROR","SQL  DELETE CARD  ERROR",QMessageBox::Ok);
+        return;
+    }
+    else
+    {
+       QMessageBox::about(this,"SUCCESS","DELETE A LABEL");
+       return;
+    }
 }

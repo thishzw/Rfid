@@ -1,5 +1,7 @@
 #include "reader.h"
 #include<QDebug>
+#include<QTime>
+#include<QCoreApplication>
 #define	LEN_Tag							(12)
 #define LEN_TagEPCData			(8)
 #define SIZE_COMMBuffer			(1024 * 4)
@@ -77,7 +79,7 @@ bool   Reader::IdentifySingleTag(char* tagID, char* antennaNo,char ReaderAddr)
                 && buffer[1] == 0x10
                 && buffer[2] == 0x82
                 && buffer[17] == GetCheckSum(buffer, 17)	)
-                ::memcpy(tagID, &buffer[5], LEN_Tag);
+                memcpy(tagID, &buffer[5], LEN_Tag);
                 if(antennaNo != 0)
                     *antennaNo = buffer[4];
                 ret = true;
@@ -235,7 +237,7 @@ bool   Reader::ReadTag(char memBank, char address, char length, char* data,char 
                 && buffer[2] == 0x80
 //				&& buffer[3] == 0x04
                 && buffer[expectedRecvLen - 1] == GetCheckSum(buffer, expectedRecvLen - 1)	)
-                ::memcpy(data, &buffer[7], length * 2);
+                memcpy(data, &buffer[7], length * 2);
                 ret = true;
         }
     }
@@ -602,6 +604,10 @@ bool   Reader::KillTag(char passwd1, char passwd2, char passwd3, char passwd4,ch
         if(COMMSendData( (const char*)buffer, 10) == 10)
         {
             memset(buffer, 0, 6 * sizeof(char));
+            QTime t;
+            t.start();
+            while(t.elapsed()<1000)
+                QCoreApplication::processEvents();
             if(COMMReceiveData( (char*)buffer, 6) == 6)
             {
                 if(	   buffer[0] == 0xE4
@@ -614,4 +620,29 @@ bool   Reader::KillTag(char passwd1, char passwd2, char passwd3, char passwd4,ch
         }
         return ret;
 
+}
+bool  Reader::SetReaderParameter( int addr,const char* params,char ReaderAddr)
+{
+    bool ret = false;
+    buffer[0] = 0xA0;
+    buffer[1] = 6;
+    buffer[2] = 0x60;
+    buffer[3] = ReaderAddr;				//usercode
+    buffer[4] = 0x00;
+    buffer[5] = (char)addr;
+    buffer[6] = GetCheckSum(buffer, 6);
+    if(COMMSendData((const char*)buffer, 7) == 7)
+    {
+        memset(buffer, 0, 6 * sizeof(char));
+        if(COMMReceiveData((char*)buffer, 6) == 6)
+        {
+            if(	   buffer[0] == 0xE4
+                && buffer[1] == 0x04
+                && buffer[2] == 0x60
+                && buffer[4] == 0x00
+                && buffer[5] == GetCheckSum(buffer, 5)	)
+                ret = true;
+        }
+    }
+    return ret;
 }

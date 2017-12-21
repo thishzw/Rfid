@@ -1,6 +1,7 @@
 #include "client.h"
 #include "ui_client.h"
-
+#include"pay.h"
+#include<QDebug>
 Client::Client(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::Client)
@@ -8,11 +9,13 @@ Client::Client(QWidget *parent) :
     ui->setupUi(this);
     total=0;
     ui->pushButton_2->hide();
+    goodsID.clear();
+    customer=false;
 }
-void Client::setCom(int comd)
+void Client::setCom(Reader *comReader)
 {
-    com=new Reader();
-    com->openCOMM(comd);
+    com=comReader;
+    com->openCOMM(4);
 }
 Client::~Client()
 {
@@ -26,34 +29,32 @@ void Client::setDataBase(QSqlDatabase *database)
 void Client::on_pushButton_clicked()
 {
     clear();
-    if(!com->IdentifyUploadedMultiTags(&cardNum,&EPCs[0][0],nullptr,0))
+    if(!com->IdentifySingleTag(EPC,nullptr,0))
     {
-        QMessageBox::warning(this,"ERROR","IdentifyUploadedMultiTags ERROR");
+        QMessageBox::warning(this,"ERROR","IdentifyTag ERROR");
         return;
     }
     QSqlQuery query(*db);
-    QString temp="SELECT * FROM card WHERE TID=\'";
-    for(int i=0;i<cardNum;i++)
-    {
+    QString temp="SELECT * FROM card WHERE EPC=\'";
         query.clear();
         QByteArray array;
-        if(!com->ReadTIDByEpcID(EPCs[i],TIDs[i],0))
-        {
-            QMessageBox::warning(this,"ERROR","READ TID ERROR");
-            return;
-        }
-        array.setRawData(TIDs[i],8);
+        array.setRawData(EPC,12);
         array=array.toHex();
-        QString tid(array);
-        QString temp1=temp+tid;
+        QString epc(array);
+        qDebug()<<epc;
+        QString temp1=temp+epc;
         temp1+="\'";
         if(!query.exec(temp1))
         {
             QMessageBox::warning(this,"ERROR","Identify SQL ERROR");
             return;
         }
-        if(!query.size()>0)
-            continue;
+        qDebug()<<"ddddddddddd"<<query.size();
+        if(query.size()==0)
+        {
+            QMessageBox::warning(this,"ERROR","Label isempty");
+            return;
+        }
         query.next();
         if(query.value("type").toString()=="customer")
         {
@@ -65,27 +66,37 @@ void Client::on_pushButton_clicked()
         {
             AddAGoods(query.value("id").toInt());
         }
-    }
     ui->pushButton_2->show();
 }
 
 void Client::on_pushButton_2_clicked()
 {
-    QSqlQuery query(*db);
-    QString temp="UPDATE customer SET money=";
-    double temp1=nowMoney-total;
-    temp+=QString::number(temp1,10,2);
-    temp+=" WHERE id=";
-    temp+=QString::number(customerID,10);
-    if(!query.exec(temp))
+    if(customer)
     {
-        QMessageBox::warning(this,"ERROR","UPDATE SQL CUSTOMER ERROR");
-        return;
+        QSqlQuery query(*db);
+        QString temp="UPDATE customer SET money=";
+        double temp1=nowMoney-total;
+        temp+=QString::number(temp1,10,2);
+        temp+=" WHERE id=";
+        temp+=QString::number(customerID,10);
+        if(!query.exec(temp))
+        {
+            QMessageBox::warning(this,"ERROR","UPDATE SQL CUSTOMER ERROR");
+            return;
+        }
+        QMessageBox::about(this,"SUCCESS","you have pay for them")  ;
+        ui->lineEdit_4->setText(QString::number(temp1,10,2));
+        ui->lineEdit_4->repaint();
+        ui->pushButton_2->hide();
+        del_goods();
     }
-      QMessageBox::about(this,"SUCCESS","you have pay for them")  ;
-      ui->lineEdit_4->setText(QString::number(temp1,10,2));
-      ui->pushButton_2->hide();
-      clear();
+    else
+    {
+        pay *a;
+        a=new pay(this);
+        a->show();
+        connect(a,SIGNAL(havepay()),this,SLOT(del_goods()));
+    }
 }
 void Client::SetCustomer(int id)
 {
@@ -102,11 +113,16 @@ void Client::SetCustomer(int id)
     ui->lineEdit_2->setText(QString::number(query.value("age").toInt(),10));
     ui->lineEdit_3->setText(query.value("male").toString());
     ui->lineEdit_4->setText(QString::number(query.value("money").toDouble(),10,2));
+    ui->lineEdit->repaint();
+    ui->lineEdit_2->repaint();
+    ui->lineEdit_3->repaint();
+    ui->lineEdit_4->repaint();
     nowMoney=query.value("money").toDouble();
     query.clear();
 }
 void Client::AddAGoods(int id)
 {
+    goodsID.append(id);
     QSqlQuery query(*db);
     QString temp="SELECT * FROM goods WHERE id=";
     temp+=QString::number(id,10);
@@ -123,6 +139,7 @@ void Client::AddAGoods(int id)
     double money=query.value("price").toDouble();
     total+=money;
     ui->label_8->setText(QString::number(total,10,2));
+    ui->label_8->repaint();
     temp+=QString::number(total,10,2);
     ui->textEdit->append(temp);
 }
@@ -130,9 +147,42 @@ void Client::clear()
 {
     total=0;
     ui->label_8->setText(QString::number(total,10,2));
+    ui->label_8->repaint();
     ui->lineEdit->clear();
     ui->lineEdit_2->clear();
     ui->lineEdit_3->clear();
     ui->lineEdit_4->clear();
     ui->textEdit->clear();
+    customer=false;
+    goodsID.clear();
+}
+void Client::del_goods()
+{
+    QSqlQuery query(*db);
+    QString temp;
+    QString temp1="DELETE FROM card WHERE id=";
+    QString temp2="DELETE FROM goods WHERE id=";
+    for(int i=0;i<goodsID.size();i++)
+    {
+        temp=temp1;
+        temp+=QString::number(goodsID.at(i),10);
+        if(!query.exec(temp))
+        {
+            QMessageBox::warning(this,"ERROR","DELETE SQL CARD ERROR");
+            return;
+        }
+        query.clear();
+        temp=temp2;
+        temp+=QString::number(goodsID.at(i),10);
+        if(!query.exec(temp))
+        {
+            QMessageBox::warning(this,"ERROR","DELETE SQL GOODS ERROR");
+            return;
+        }
+    }
+    clear();
+}
+void Client::on_pushButton_3_clicked()
+{
+    clear();
 }

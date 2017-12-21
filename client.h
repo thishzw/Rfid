@@ -10,6 +10,7 @@
 #include<QtSerialPort/QSerialPortInfo>
 #include"reader.h"
 #include<QMessageBox>
+#include<QVector>
 namespace Ui {
 class Client;
 }
@@ -22,26 +23,28 @@ public:
     explicit Client(QWidget *parent = 0);
     ~Client();
 void setDataBase(QSqlDatabase *database);
-void setCom(int com);
+void setCom(Reader *comReader);
 private slots:
 void on_pushButton_clicked();
 
 void on_pushButton_2_clicked();
+void clear();
+void on_pushButton_3_clicked();
 
 private:
     Ui::Client *ui;
     QSqlDatabase *db;
     Reader *com;
+    QVector<int> goodsID;
     char cardNum;
-    char EPCs[100][12];
-    char TIDs[100][12];
+    char EPC[12];
     bool customer;
     int customerID;
     double total;
     double nowMoney;
 void SetCustomer(int id);
 void AddAGoods(int id);
-void clear();
+void del_goods();
 };
 
 #endif // CLIENT_H

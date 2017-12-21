@@ -8,6 +8,7 @@
 #include<QSqlQuery>
 #include"mainwindow.h"
 #include"client.h"
+#include"reader.h"
 namespace Ui {
 class Login;
 }
@@ -25,9 +26,13 @@ private slots:
 
     void on_pushButton_clicked();
 
+    void on_pushButton_3_clicked();
+
 private:
     Ui::Login *ui;
     QSqlDatabase *db;
+    Reader *comReader;
+void comDeal();
 };
 
 #endif // LOGIN_H
