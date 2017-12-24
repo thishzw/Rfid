@@ -23,10 +23,10 @@ MainWindow::MainWindow(QWidget *parent) :
     isCustomer=false;
     identify=false;
 }
-void MainWindow::setCom(Reader *com)
+void MainWindow::setCom(int no)
 {
-    comReader=com;
-    comReader->openCOMM(4);
+    this->no=no;
+    com=OpenComm(no);
 }
 void MainWindow::setDataBase(QSqlDatabase *database)
 {
@@ -62,8 +62,8 @@ void MainWindow::mode()
         ui->label_5->show();
         ui->lineEdit_3->show();
         ui->lineEdit_5->show();
-        ui->label_2->setText("å§“åï¼š");
-        ui->label_3->setText("æ€§åˆ«ï¼š");
+        ui->label_2->setText("ÐÕÃû£º");
+        ui->label_3->setText("ÐÔ±ð£º");
         ui->label_2->repaint();
         ui->label_3->repaint();
 
@@ -74,34 +74,30 @@ void MainWindow::mode()
         ui->label_5->hide();
         ui->lineEdit_3->hide();
         ui->lineEdit_5->hide();
-        ui->label_2->setText("å•†å“åï¼š");
+        ui->label_2->setText("ÉÌÆ·Ãû£º");
         ui->label_2->repaint();
-        ui->label_3->setText("å”®ä»·ï¼š");
+        ui->label_3->setText("ÊÛ¼Û£º");
         ui->label_3->repaint();
 
     }
-}
-void MainWindow::WriteCustomer()
-{
-
-}
-
-void MainWindow::WriteGoods()
-{
-
 }
 
 
 void MainWindow::on_pushButton_clicked()
 {
-    //è¯†åˆ«å¡èŽ·å¾—EPC
-    if(!comReader->IdentifySingleTag(EPC,nullptr,0))
+    //Ê¶±ð¿¨»ñµÃEPC
+    if(!IdentifyUploadedSingleTag(com,EPC,nullptr,0))
     {
         QMessageBox::warning(this,"ERROR","IDENTFY EPC ERROR",QMessageBox::Ok);
         return;
     }
     QByteArray array;
-    array.setRawData(EPC,12);
+    char temp1[12];
+    for(int i=0;i<12;i++)
+    {
+        temp1[i]=(int)EPC[i];
+    }
+    array.setRawData(temp1,12);
     array=array.toHex();
     QString epc(array);
     qDebug()<<epc;
@@ -115,14 +111,16 @@ void MainWindow::on_pushButton_clicked()
        query.next();
     if(query.size())
     {
-       //å·²è¢«æ ‡è¯†çš„å¡
+       //ÒÑ±»±êÊ¶µÄ¿¨
         if(add)
         {
             QMessageBox::warning(this,"ERROR","THIS LABEL IS NOT A NEW ONE");
+            CloseComm(com);
+            com=OpenComm(no);
             return;
         }
         ui->pushButton_3->show();
-        ui->label_7->setText("å·²æ£€æµ‹åˆ°æ ‡ç­¾");
+        ui->label_7->setText("match");
         ui->label_7->repaint();
         QString type=query.value("type").toString();
         if(type=="customer")
@@ -170,8 +168,8 @@ void MainWindow::on_pushButton_clicked()
         if(!add)
         QMessageBox::about(this,"SUCCESS","THIS IS A NEW LABEL,PLEASE CHOOSE ADD A GOODS OR CUSTOMER");
     }
-    comReader->CloseCOMM();
-    comReader->openCOMM(4);
+    CloseComm(com);
+    com=OpenComm(no);
 }
 
 void MainWindow::on_pushButton_2_clicked()
@@ -182,12 +180,17 @@ void MainWindow::on_pushButton_2_clicked()
     {
         QSqlQuery query(*db);
         QByteArray array;
-        array.setRawData(EPC,12);
+        char temp1[12];
+        for(int i=0;i<12;i++)
+        {
+            temp1[i]=(int)EPC[i];
+        }
+        array.setRawData(temp1,12);
         array=array.toHex();
         QString epc(array);
         if(add)
         {
-           //æ–°å¢žçš„å¡ç‰‡
+           //ÐÂÔöµÄ¿¨Æ¬
             QString temp="INSERT INTO card (EPC,type) values(\'";
             temp+=epc;
             temp+="\',\'";
@@ -254,7 +257,7 @@ void MainWindow::on_pushButton_2_clicked()
         }
         else
         {
-           //æ—§å¡ç‰‡
+           //¾É¿¨Æ¬
             QString temp;
             temp="SELECT id FROM card WHERE EPC=\'";
             temp+=epc;
@@ -291,7 +294,7 @@ void MainWindow::on_pushButton_2_clicked()
     add=false;
     identify=false;
     ui->pushButton_3->hide();
-    ui->label_7->setText("æœªæ£€æµ‹åˆ°æ ‡ç­¾");
+    ui->label_7->setText("unmatch");
     ui->label_7->repaint();
 }
 

@@ -8,7 +8,7 @@
 #include<QSqlQuery>
 #include"mainwindow.h"
 #include"client.h"
-#include"reader.h"
+#define HANDLE int
 namespace Ui {
 class Login;
 }
@@ -31,8 +31,6 @@ private slots:
 private:
     Ui::Login *ui;
     QSqlDatabase *db;
-    Reader *comReader;
-void comDeal();
 };
 
 #endif // LOGIN_H

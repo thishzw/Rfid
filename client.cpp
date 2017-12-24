@@ -7,15 +7,16 @@ Client::Client(QWidget *parent) :
     ui(new Ui::Client)
 {
     ui->setupUi(this);
+
     total=0;
     ui->pushButton_2->hide();
     goodsID.clear();
     customer=false;
 }
-void Client::setCom(Reader *comReader)
+void Client::setCom(int no)
 {
-    com=comReader;
-    com->openCOMM(4);
+    this->no=no;
+    com=OpenComm(no);
 }
 Client::~Client()
 {
@@ -28,17 +29,23 @@ void Client::setDataBase(QSqlDatabase *database)
 
 void Client::on_pushButton_clicked()
 {
-    clear();
-    if(!com->IdentifySingleTag(EPC,nullptr,0))
+    if(!IdentifyUploadedSingleTag(com,EPC,nullptr,0))
     {
         QMessageBox::warning(this,"ERROR","IdentifyTag ERROR");
+        CloseComm(com);
+        com=OpenComm(no);
         return;
     }
     QSqlQuery query(*db);
     QString temp="SELECT * FROM card WHERE EPC=\'";
         query.clear();
         QByteArray array;
-        array.setRawData(EPC,12);
+        char temp2[12];
+        for(int i=0;i<12;i++)
+        {
+            temp2[i]=(int)EPC[i];
+        }
+        array.setRawData(temp2,12);
         array=array.toHex();
         QString epc(array);
         qDebug()<<epc;
@@ -47,12 +54,16 @@ void Client::on_pushButton_clicked()
         if(!query.exec(temp1))
         {
             QMessageBox::warning(this,"ERROR","Identify SQL ERROR");
+            CloseComm(com);
+            com=OpenComm(no);
             return;
         }
         qDebug()<<"ddddddddddd"<<query.size();
         if(query.size()==0)
         {
             QMessageBox::warning(this,"ERROR","Label isempty");
+            CloseComm(com);
+            com=OpenComm(no);
             return;
         }
         query.next();
@@ -67,6 +78,8 @@ void Client::on_pushButton_clicked()
             AddAGoods(query.value("id").toInt());
         }
     ui->pushButton_2->show();
+    CloseComm(com);
+    com=OpenComm(no);
 }
 
 void Client::on_pushButton_2_clicked()
@@ -76,6 +89,12 @@ void Client::on_pushButton_2_clicked()
         QSqlQuery query(*db);
         QString temp="UPDATE customer SET money=";
         double temp1=nowMoney-total;
+        qDebug()<<"nowMoney"<<nowMoney;
+        if(temp1<0)
+        {
+            QMessageBox::warning(this,"ERROR","YOU DON'T HAVE ENOUGH MONEY");
+            return;
+        }
         temp+=QString::number(temp1,10,2);
         temp+=" WHERE id=";
         temp+=QString::number(customerID,10);
@@ -140,7 +159,7 @@ void Client::AddAGoods(int id)
     total+=money;
     ui->label_8->setText(QString::number(total,10,2));
     ui->label_8->repaint();
-    temp+=QString::number(total,10,2);
+    temp+=QString::number(money,10,2);
     ui->textEdit->append(temp);
 }
 void Client::clear()

@@ -30,8 +30,7 @@ void Login::on_pushButton_2_clicked()
         this->hide();
         MainWindow *server;
         server=new MainWindow(this);
-        comDeal();
-        server->setCom(comReader);
+        server->setCom(ui->spinBox->text().toInt());
         server->setDataBase(db);
         server->show();
     }
@@ -51,20 +50,11 @@ void Login::on_pushButton_clicked()
     Client *client;
     client=new Client(this);
     client->setDataBase(db);
-    comDeal();
-    client->setCom(comReader);
+    client->setCom(ui->spinBox->text().toInt());
     client->show();
 }
 
 void Login::on_pushButton_3_clicked()
 {
     close();
-}
-void Login::comDeal()
-{
-    comReader=new Reader();
-    comReader->CloseCOMM();
-    comReader->openCOMM(ui->spinBox->text().toInt(nullptr,10));
-    char para=2;
-
 }

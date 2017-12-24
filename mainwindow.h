@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include"reader.h"
 #include<QByteArray>
 #include<QSqlDatabase>
 #include<QSql>
@@ -11,6 +10,8 @@
 #include<QMessageBox>
 #include<QException>
 #include<QSqlRecord>
+#include"EPCSDK.h"
+#define HANDLE int
 namespace Ui {
 class MainWindow;
 }
@@ -18,12 +19,11 @@ class MainWindow;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 void setDataBase(QSqlDatabase *database);
-void setCom(Reader *com);
+void setCom(int no);
 private slots:
 
 void on_action_triggered();
@@ -39,16 +39,15 @@ void on_pushButton_3_clicked();
 
 private:
     Ui::MainWindow *ui;
-    Reader *comReader;
     QSqlDatabase *db;
+    HANDLE com;
     bool add;
     bool isCustomer;
     bool identify;
-    char EPC[24]  ;
+    unsigned char EPC[24]  ;
     int cardID;
     void mode();
-    void WriteCustomer();
-    void WriteGoods();
+    int no;
 };
 
 #endif // MAINWINDOW_H

@@ -4,6 +4,7 @@
 #include<QSqlDatabase>
 #include<QSql>
 #include<QSqlDriver>
+#include<QLibrary>
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
@@ -21,5 +22,6 @@ int main(int argc, char *argv[])
     Login w;
     w.setDataBase(db);
     w.show();
+
     return a.exec();
 }

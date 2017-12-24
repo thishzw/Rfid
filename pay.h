@@ -2,7 +2,7 @@
 #define PAY_H
 
 #include <QDialog>
-
+#define HANDLE int
 namespace Ui {
 class pay;
 }
