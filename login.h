@@ -9,6 +9,7 @@
 #include"mainwindow.h"
 #include"client.h"
 #define HANDLE int
+;;;;;;;;
 namespace Ui {
 class Login;
 }
